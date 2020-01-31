@@ -60,17 +60,49 @@ Block *trackBlock(uint8_t index)
   return NULL;
 }
 
+void sendData(int x, int y) {
+  // Check to see if we have any data waiting to be read.  This is our cue to send our data if we
+  //   have any.  
+  static char bByte;
+  static char tmpString[12];          // Used to store the tracking information we are sending over serial.
+
+  
+  if (Serial.available()) {
+    while (Serial.available() != 0){
+      bByte = Serial.read();
+      if ((bByte == 'T') || (bByte == 't')) {
+        pixy.setLamp(1,1);
+      }
+      if ((bByte == 'F') || (bByte == 'f')) {
+        pixy.setLamp(0,0);
+      }
+    }
+    
+    // If we currently have a block acquired, send it's lateral position and height.  The values that are passed to us 
+    // are between 0 and 319.  We want an offset from the middle of the screen, so we subtract 160 (half of 320) 
+    // from the position to get values between -160 and 160.  The Height of the block is sent as well so that we
+    // can estimate distance to the object.
+    if (x != -999) {      
+      sprintf(tmpString, "S%04d,%03dE", x - 160, y);
+    } else {
+      sprintf(tmpString, "S%04dE", -999);
+    }  
+    Serial.println(tmpString);      
+  }
+}
+
 
 void loop()
 { 
-  static int16_t index = -1;
-  int i; 
+  static int16_t index = -1;  // The index of the block we are tracking.  -1 if we are not tracking a block.
 
+  // *block holds a pointer to an individual block.  Initially set to NULL
   Block *block=NULL;
-  // grab blocks!
+  
+  // Ask the pixy to scan for an array of blocks.
   pixy.ccc.getBlocks();
 
-  if (index==-1) // search....
+  if (index==-1) // If we don't have a block that we are interested in, see if we can find on.
   {
     index = acquireBlock();
   }
@@ -79,22 +111,10 @@ void loop()
   if (index>=0)
      block = trackBlock(index);
 
-  if (Serial.available() > 0) {
-    String s = Serial.readStringUntil('\n');
-    Serial.println(s);
-    Serial.flush();
-
-    
-    if (block)
-    {
-      Serial.print('S');
-      Serial.print(block->m_x);
-      Serial.println('E');
-    } else {
-      index = -1; // set search state
-      Serial.print('S');
-      Serial.print(-1);
-      Serial.println('E');
-    }  
+  if (!block) {
+    index = -1;
+    sendData(-999,0);
+  } else {
+    sendData(block->m_x, block->m_height);
   }
 }
