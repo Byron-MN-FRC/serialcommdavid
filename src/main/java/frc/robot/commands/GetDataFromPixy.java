@@ -13,6 +13,7 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
+import frc.robot.communications.ArduinoComm;
 
 /**
  *
@@ -38,18 +39,21 @@ public class GetDataFromPixy extends Command {
     // Called just before this Command runs the first time
     @Override
     protected void initialize() {
+        
     }
 
     // Called repeatedly when this Command is scheduled to run
     @Override
     protected void execute() {
-        SmartDashboard.putString("Data From Arduino", Robot.oi.arduino.RequestData());
+        ArduinoComm.RequestDataFromPixy(true);
+        SmartDashboard.putNumber("Block X Position", ArduinoComm.blockPosition());
+        SmartDashboard.putNumber("Block Height", ArduinoComm.blockHeight());
     }
 
     // Make this return true when this Command no longer needs to run execute()
     @Override
     protected boolean isFinished() {
-        return false;
+        return (isTimedOut() || isFinished());
     }
 
     // Called once after isFinished returns true

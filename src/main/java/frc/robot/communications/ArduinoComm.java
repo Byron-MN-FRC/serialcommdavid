@@ -1,5 +1,8 @@
 package frc.robot.communications;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.SerialPort.Port;
 
@@ -27,14 +30,21 @@ public class ArduinoComm {
         
         // if the arduino doesn't respond, we need to rely on the command
         // that called this routine to timeout and end.
-        while (serial.getBytesReceived() < responseLen) {
+        Instant start = Instant.now();
+        long timeElapsed = 0;
+        while (serial.getBytesReceived() < responseLen && (timeElapsed < 100)) {
             //loop until all the bytes we are looking for are there.
+            Instant finish = Instant.now();
+            timeElapsed = Duration.between(start, finish).toMillis();
         }
 
         if (serial.getBytesReceived() >= responseLen) {
             String response = serial.readString(responseLen);
             blockPos = decodeX(response);
             blockHeight = decodeHeight(response);
+        } else {
+            blockPos = -999;
+            blockHeight = 999;
         }
 
         return (blockPos != -999);
